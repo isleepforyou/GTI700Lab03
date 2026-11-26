@@ -10,8 +10,10 @@
 **********************************************************************
 '''
 #!/usr/bin/env python3
-import RPi.GPIO as GPIO
+import sys
 import time
+
+import RPi.GPIO as GPIO
 
 DHTPIN = 17
 
@@ -117,19 +119,20 @@ def read_dht11_dat():
 	return the_bytes[0], the_bytes[2]
 
 def main():
-	print ("Raspberry Pi wiringPi DHT11 Temperature test program\n")
-	while True:
-		result = read_dht11_dat()
-		if result:
-			humidity, temperature = result
-			print ("humidity: %s %%,  Temperature: %s C`" % (humidity, temperature))
-		time.sleep(1)
+	result = read_dht11_dat()
+	if not result:
+		print("DHT11 read failed", file=sys.stderr)
+		return 1
+
+	humidity, temperature = result
+	print(f"{temperature:.1f} {humidity:.1f}")
+	return 0
 
 def destroy():
 	GPIO.cleanup()
 
 if __name__ == '__main__':
 	try:
-		main()
-	except KeyboardInterrupt:
-		destroy() 
+		sys.exit(main())
+	finally:
+		destroy()

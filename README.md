@@ -6,8 +6,17 @@ les nœuds Function. Les deux scripts Python communiquent avec le matériel.
 ## 1. Préparer le Raspberry Pi
 
 Installer Node-RED et rendre les modules Python `RPi.GPIO` et `smbus2`
-accessibles au compte qui lance Node-RED. Utiliser le montage du cours, avec
-le DHT11 relié à **BCM 17**, et activer le bus **I²C 1** pour le LCD.
+accessibles au compte qui lance Node-RED. Pour le DHT11, relier VCC au 3,3 V
+(broche physique 1), DATA à **BCM 17** (broche 11) et GND à la broche 6.
+Un capteur nu peut nécessiter une résistance de tirage de 4,7 à 10 kΩ entre
+DATA et 3,3 V; les modules DHT11 l'intègrent souvent déjà.
+
+Pour le LCD I²C avec adaptateur PCF8574T, relier SDA à GPIO2 (broche 3), SCL à
+GPIO3 (broche 5), et partager la masse. Alimenter le module selon ses
+spécifications. Si son bus I²C est tiré au 5 V, intercaler un convertisseur de
+niveau compatible I²C: les broches du Raspberry Pi ne tolèrent pas le 5 V.
+Le flot utilise le DHT11 et le LCD; `thermistor.py` est un exemple séparé.
+Activer le bus **I²C 1** pour le LCD.
 
 Extraire l’archive dans le dossier personnel de ce compte. Le chemin attendu
 pour les scripts est `~/gti700-lab3/python_examples`. Si le dossier est ailleurs,
@@ -50,9 +59,11 @@ Ouvrir `http://<adresse-du-pi>:1880/red/`, importer
   `/group` affiche les statistiques déjà disponibles, même si un type de mesure
   n’a encore fourni aucun échantillon.
 
-Les cadences de **3 s, 20 s et 5 s** suivent les sections 1.1 à 1.4 de
-l’énoncé. Les nœuds Inject permettent de les ajuster selon la grille de correction
-si nécessaire.
+Les sections 1.1 à 1.4 demandent des cadences de **3 s, 20 s et 5 s**. La grille
+de correction indique plutôt **2 s, 10 s et 3 s**. Les nœuds Inject permettent
+d'ajuster les intervalles; confirmer la cadence attendue avant la démonstration.
+Si le LCD passe à 3 s, réduire son délai Exec pour qu'il reste inférieur à cet
+intervalle; la pagination doit aussi tenir dans ce délai.
 
 L’adresse météo de l’énoncé renvoyait 404 lors de la vérification. Le nœud HTTP
 utilise l’adresse du flux Atom publiée par la page officielle de Montréal.
