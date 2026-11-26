@@ -1,0 +1,739 @@
+[
+  {
+    "id": "ac2b3e0000000002",
+    "type": "tab",
+    "label": "GTI700 — Laboratoire 3 · Équipe 02",
+    "disabled": false,
+    "info": "",
+    "env": []
+  },
+  {
+    "id": "ac2b300000000001",
+    "type": "inject",
+    "z": "ac2b3e0000000002",
+    "props": [
+      {
+        "p": "payload"
+      }
+    ],
+    "repeat": "3",
+    "crontab": "",
+    "once": true,
+    "onceDelay": 0.3,
+    "topic": "",
+    "payload": "",
+    "payloadType": "date",
+    "name": "Toutes les 3 s",
+    "x": 170,
+    "y": 82,
+    "wires": [
+      [
+        "ac2b300000000002"
+      ]
+    ],
+    "g": "ac2b300000000006"
+  },
+  {
+    "id": "ac2b300000000002",
+    "type": "exec",
+    "z": "ac2b3e0000000002",
+    "command": "exec python3 \"${GTI700_SCRIPT_DIR:-$HOME/gti700-lab3/python_examples}/humid.py\"",
+    "addpay": false,
+    "append": "",
+    "useSpawn": "false",
+    "timer": "2",
+    "winHide": false,
+    "oldrc": false,
+    "name": "Lire le DHT11",
+    "x": 400,
+    "y": 82,
+    "wires": [
+      [
+        "ac2b300000000003"
+      ],
+      [
+        "ac2b300000000005"
+      ],
+      []
+    ],
+    "g": "ac2b300000000006"
+  },
+  {
+    "id": "ac2b300000000003",
+    "type": "function",
+    "z": "ac2b3e0000000002",
+    "outputs": 2,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "flow.set(\"self\", undefined);",
+    "finalize": "",
+    "libs": [],
+    "func": "const parts = String(msg.payload).trim().split(/\\s+/);\nif (parts.length !== 2 || !parts.every(part => /^-?\\d+(\\.\\d+)?$/.test(part))) return null;\n\nconst [T, H] = parts.map(Number);\nif (!Number.isFinite(T) || !Number.isFinite(H) || H < 0 || H > 100) return null;\n\nflow.set(\"self\", { T, H });\nconst prefix = \"gti700e2025/data/emplacements/equipe02\";\nreturn [\n  { topic: prefix + \"/temperature\", payload: T.toFixed(1) },\n  { topic: prefix + \"/humidite\", payload: H.toFixed(1) }\n];",
+    "name": "Valider et préparer les mesures",
+    "x": 700,
+    "y": 82,
+    "wires": [
+      [
+        "ac2b300000000004"
+      ],
+      [
+        "ac2b300000000004"
+      ]
+    ],
+    "g": "ac2b300000000006"
+  },
+  {
+    "id": "ac2b300000000004",
+    "type": "mqtt out",
+    "z": "ac2b3e0000000002",
+    "topic": "",
+    "qos": "0",
+    "retain": "false",
+    "respTopic": "",
+    "contentType": "",
+    "userProps": "",
+    "correl": "",
+    "expiry": "",
+    "broker": "ac2b3f0000000002",
+    "name": "HiveMQ · Équipe 02",
+    "x": 1050,
+    "y": 82,
+    "wires": [],
+    "g": "ac2b300000000006"
+  },
+  {
+    "id": "ac2b300000000005",
+    "type": "debug",
+    "z": "ac2b3e0000000002",
+    "active": true,
+    "tosidebar": true,
+    "console": false,
+    "tostatus": false,
+    "complete": "payload",
+    "targetType": "msg",
+    "statusVal": "",
+    "statusType": "auto",
+    "name": "Erreur du capteur",
+    "x": 700,
+    "y": 130,
+    "wires": [],
+    "g": "ac2b300000000006"
+  },
+  {
+    "id": "ac2b300000000006",
+    "type": "group",
+    "z": "ac2b3e0000000002",
+    "name": "1.1  ·  Mesures personnelles et publication MQTT",
+    "x": 24,
+    "y": 32,
+    "w": 1312,
+    "h": 132,
+    "nodes": [
+      "ac2b300000000001",
+      "ac2b300000000002",
+      "ac2b300000000003",
+      "ac2b300000000004",
+      "ac2b300000000005"
+    ],
+    "style": {
+      "label": true,
+      "stroke": "#98b5cf",
+      "fill": "#f9fbfc",
+      "color": "#2b3942"
+    }
+  },
+  {
+    "id": "ac2b300000000007",
+    "type": "mqtt in",
+    "z": "ac2b3e0000000002",
+    "topic": "gti700e2025/data/emplacements/+/+",
+    "qos": "0",
+    "datatype": "utf8",
+    "broker": "ac2b3f0000000002",
+    "nl": false,
+    "rap": true,
+    "rh": 0,
+    "inputs": 0,
+    "name": "HiveMQ · Toutes les équipes",
+    "x": 165,
+    "y": 220,
+    "wires": [
+      [
+        "ac2b300000000008"
+      ]
+    ],
+    "g": "ac2b30000000000a"
+  },
+  {
+    "id": "ac2b300000000008",
+    "type": "function",
+    "z": "ac2b3e0000000002",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "flow.set(\"group\", undefined);",
+    "finalize": "",
+    "libs": [],
+    "func": "const topic = /^gti700e2025\\/data\\/emplacements\\/equipe(0[1-9]|1[0-2])\\/(temperature|humidite)$/;\nconst match = String(msg.topic).match(topic);\nconst text = String(msg.payload).trim();\nif (!match || !/^-?\\d+(\\.\\d+)?$/.test(text)) return null;\n\nconst [, team, metric] = match;\nconst key = metric === \"temperature\" ? \"T\" : \"H\";\nconst value = Number(text);\nif (!Number.isFinite(value) || (key === \"H\" && (value < 0 || value > 100))) return null;\n\nconst group = flow.get(\"group\") || { teams: {}, samples: {}, summary: {} };\nconst teamNumber = Number(team);\ngroup.teams[team] = { ...group.teams[team], [key]: value };\nconst sample = group.samples[key] || { sum: 0, count: 0, min: [value, teamNumber], max: [value, teamNumber] };\nsample.sum += value;\nsample.count += 1;\nif (value < sample.min[0]) sample.min = [value, teamNumber];\nif (value > sample.max[0]) sample.max = [value, teamNumber];\ngroup.samples[key] = sample;\ngroup.summary[key + \"min\"] = sample.min;\ngroup.summary[key + \"max\"] = sample.max;\ngroup.summary[key + \"moy\"] = sample.sum / sample.count;\nflow.set(\"group\", group);\n\nconst latest = Object.keys(group.teams).sort().map(id => {\n  const { T, H } = group.teams[id];\n  const fields = {};\n  if (T !== undefined) fields.Temperature = T.toFixed(1);\n  if (H !== undefined) fields.Humidite = H.toFixed(1);\n  return JSON.stringify(id) + \": \" + JSON.stringify(fields).replace(/:/g, \": \").replace(/,/g, \", \");\n});\nconst lines = [[\"T\", \"Température\", \"C\"], [\"H\", \"Humidité\", \"%\"]].map(([k, label, unit]) => {\n  const stats = group.samples[k];\n  if (!stats) return label + \" du groupe: aucune information disponible.\";\n  const show = ([n, id]) => n.toFixed(1) + unit + \" [\" + id + \"]\";\n  return label + \" du groupe: min:\" + show(stats.min) + \", max:\" + show(stats.max) +\n    \", moy:\" + group.summary[k + \"moy\"].toFixed(1) + unit + \".\";\n});\nmsg.payload = [\"Dernières valeurs de température et d'humidité: [\" + latest.join(\", \") + \"]\", ...lines].join(\"\\n\");\nreturn msg;",
+    "name": "Mettre à jour les statistiques",
+    "x": 470,
+    "y": 220,
+    "wires": [
+      [
+        "ac2b300000000009"
+      ]
+    ],
+    "g": "ac2b30000000000a"
+  },
+  {
+    "id": "ac2b300000000009",
+    "type": "debug",
+    "z": "ac2b3e0000000002",
+    "active": true,
+    "tosidebar": true,
+    "console": false,
+    "tostatus": false,
+    "complete": "payload",
+    "targetType": "msg",
+    "statusVal": "",
+    "statusType": "auto",
+    "name": "Mesures et statistiques du groupe",
+    "x": 780,
+    "y": 220,
+    "wires": [],
+    "g": "ac2b30000000000a"
+  },
+  {
+    "id": "ac2b30000000000a",
+    "type": "group",
+    "z": "ac2b3e0000000002",
+    "name": "1.2  ·  Mesures et statistiques du groupe",
+    "x": 24,
+    "y": 170,
+    "w": 1312,
+    "h": 84,
+    "nodes": [
+      "ac2b300000000007",
+      "ac2b300000000008",
+      "ac2b300000000009"
+    ],
+    "style": {
+      "label": true,
+      "stroke": "#95bcad",
+      "fill": "#f9fbfc",
+      "color": "#2b3942"
+    }
+  },
+  {
+    "id": "ac2b30000000000b",
+    "type": "inject",
+    "z": "ac2b3e0000000002",
+    "props": [
+      {
+        "p": "payload"
+      },
+      {
+        "p": "requestTimeout",
+        "v": "8000",
+        "vt": "num"
+      }
+    ],
+    "repeat": "20",
+    "crontab": "",
+    "once": true,
+    "onceDelay": 0.2,
+    "topic": "",
+    "payload": "",
+    "payloadType": "date",
+    "name": "Toutes les 20 s",
+    "x": 170,
+    "y": 310,
+    "wires": [
+      [
+        "ac2b30000000000c"
+      ]
+    ],
+    "g": "ac2b300000000013"
+  },
+  {
+    "id": "ac2b30000000000c",
+    "type": "http request",
+    "z": "ac2b3e0000000002",
+    "method": "GET",
+    "ret": "txt",
+    "paytoqs": "ignore",
+    "url": "https://meteo.gc.ca/rss/weather/45.51_-73.55_f.xml",
+    "tls": "",
+    "persist": false,
+    "proxy": "",
+    "insecureHTTPParser": false,
+    "authType": "",
+    "senderr": false,
+    "headers": [],
+    "name": "Flux météo Montréal",
+    "x": 377,
+    "y": 310,
+    "wires": [
+      [
+        "ac2b30000000000d"
+      ]
+    ],
+    "g": "ac2b300000000013"
+  },
+  {
+    "id": "ac2b30000000000d",
+    "type": "switch",
+    "z": "ac2b3e0000000002",
+    "property": "statusCode",
+    "propertyType": "msg",
+    "rules": [
+      {
+        "t": "eq",
+        "v": "200",
+        "vt": "num"
+      },
+      {
+        "t": "else"
+      }
+    ],
+    "checkall": "false",
+    "repair": false,
+    "outputs": 2,
+    "name": "HTTP 200",
+    "x": 585,
+    "y": 310,
+    "wires": [
+      [
+        "ac2b30000000000e"
+      ],
+      [
+        "ac2b300000000012"
+      ]
+    ],
+    "g": "ac2b300000000013"
+  },
+  {
+    "id": "ac2b30000000000e",
+    "type": "xml",
+    "z": "ac2b3e0000000002",
+    "property": "payload",
+    "attr": "",
+    "chr": "",
+    "name": "XML → objet",
+    "x": 758,
+    "y": 310,
+    "wires": [
+      [
+        "ac2b30000000000f"
+      ]
+    ],
+    "g": "ac2b300000000013"
+  },
+  {
+    "id": "ac2b30000000000f",
+    "type": "function",
+    "z": "ac2b3e0000000002",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "flow.set(\"outside\", undefined);",
+    "finalize": "",
+    "libs": [],
+    "func": "const entries = msg.payload.feed?.entry || msg.payload.rss?.channel?.[0]?.item || [];\nconst current = entries.find(item =>\n  item.category?.some(category => /^Conditions actuelles$/i.test(category.$?.term || category)) ||\n  /^Conditions actuelles\\s*:/i.test(item.title?.[0]?._ || item.title?.[0] || \"\")\n);\nconst summary = current?.summary?.[0] || current?.description?.[0] || \"\";\nconst text = String(summary._ ?? summary)\n  .replace(/<br\\s*\\/?>/gi, \"\\n\").replace(/<[^>]*>/g, \"\")\n  .replace(/&(?:nbsp|#160|#8239);/gi, \" \").replace(/&deg;|&#176;/gi, \"°\");\n\nconst temperature = text.match(/Température\\s*:\\s*(-?\\d+(?:[.,]\\d+)?)\\s*°?\\s*C/i);\nconst humidity = text.match(/Humidité\\s*:\\s*(\\d+(?:[.,]\\d+)?)\\s*%/i);\nconst wind = text.match(/Vents?\\s*:[^\\r\\n\\d]*?(\\d+(?:[.,]\\d+)?)\\s*km\\s*\\/\\s*h/i);\nconst calm = /Vents?\\s*:\\s*calmes?\\b/i.test(text);\nif (!temperature || !humidity || (!wind && !calm)) {\n  node.warn(\"Conditions actuelles incomplètes.\");\n  return null;\n}\n\nconst number = match => Number(match[1].replace(\",\", \".\"));\nconst { T, H, V } = { T: number(temperature), H: number(humidity), V: wind ? number(wind) : 0 };\nif (![T, H, V].every(Number.isFinite)) return null;\nflow.set(\"outside\", { T, H, V });\nmsg.payload = \"Environnement Canada - Température: \" + T.toFixed(1) + \"C\\n\" +\n  \"Environnement Canada - Humidité: \" + H.toFixed(1) + \"%\\n\" +\n  \"Environnement Canada - Vitesse du vent: \" + V.toFixed(1) + \" km/h\";\nreturn msg;",
+    "name": "Lire les conditions actuelles",
+    "x": 970,
+    "y": 310,
+    "wires": [
+      [
+        "ac2b300000000010"
+      ]
+    ],
+    "g": "ac2b300000000013"
+  },
+  {
+    "id": "ac2b300000000010",
+    "type": "debug",
+    "z": "ac2b3e0000000002",
+    "active": true,
+    "tosidebar": true,
+    "console": false,
+    "tostatus": false,
+    "complete": "payload",
+    "targetType": "msg",
+    "statusVal": "",
+    "statusType": "auto",
+    "name": "Météo extérieure",
+    "x": 1215,
+    "y": 310,
+    "wires": [],
+    "g": "ac2b300000000013"
+  },
+  {
+    "id": "ac2b300000000011",
+    "type": "catch",
+    "z": "ac2b3e0000000002",
+    "scope": [
+      "ac2b30000000000c",
+      "ac2b30000000000e"
+    ],
+    "uncaught": false,
+    "name": "Erreur HTTP/XML",
+    "x": 375,
+    "y": 358,
+    "wires": [
+      [
+        "ac2b300000000012"
+      ]
+    ],
+    "g": "ac2b300000000013"
+  },
+  {
+    "id": "ac2b300000000012",
+    "type": "debug",
+    "z": "ac2b3e0000000002",
+    "active": true,
+    "tosidebar": true,
+    "console": false,
+    "tostatus": false,
+    "complete": "$exists(error.message) ? error.message : statusCode",
+    "targetType": "jsonata",
+    "statusVal": "",
+    "statusType": "auto",
+    "name": "Échec du flux météo",
+    "x": 770,
+    "y": 358,
+    "wires": [],
+    "g": "ac2b300000000013"
+  },
+  {
+    "id": "ac2b300000000013",
+    "type": "group",
+    "z": "ac2b3e0000000002",
+    "name": "1.3  ·  Conditions actuelles à Montréal",
+    "x": 24,
+    "y": 260,
+    "w": 1312,
+    "h": 132,
+    "nodes": [
+      "ac2b30000000000b",
+      "ac2b30000000000c",
+      "ac2b30000000000d",
+      "ac2b30000000000e",
+      "ac2b30000000000f",
+      "ac2b300000000010",
+      "ac2b300000000011",
+      "ac2b300000000012"
+    ],
+    "style": {
+      "label": true,
+      "stroke": "#a6b6ce",
+      "fill": "#f9fbfc",
+      "color": "#2b3942"
+    }
+  },
+  {
+    "id": "ac2b300000000014",
+    "type": "inject",
+    "z": "ac2b3e0000000002",
+    "props": [
+      {
+        "p": "payload"
+      }
+    ],
+    "repeat": "5",
+    "crontab": "",
+    "once": true,
+    "onceDelay": 1,
+    "topic": "",
+    "payload": "",
+    "payloadType": "date",
+    "name": "Toutes les 5 s",
+    "x": 170,
+    "y": 448,
+    "wires": [
+      [
+        "ac2b300000000015"
+      ]
+    ],
+    "g": "ac2b300000000018"
+  },
+  {
+    "id": "ac2b300000000015",
+    "type": "function",
+    "z": "ac2b3e0000000002",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "context.set(\"mode\", 0);",
+    "finalize": "",
+    "libs": [],
+    "func": "const mode = context.get(\"mode\") || 0;\ncontext.set(\"mode\", (mode + 1) % 4);\nconst fixed = (n, unit) => n.toFixed(1) + unit;\nconst team = id => String(id).padStart(2, \"0\");\nconst indoor = flow.get(\"self\");\nconst outdoor = flow.get(\"outside\");\nconst stats = flow.get(\"group\")?.summary || {};\nconst pair = (data, prefix) => prefix + \" \" + fixed(data.T, \"C\") + \", \" + fixed(data.H, \"%\");\nconst group = (key, unit) => {\n  const show = ([n, id]) => fixed(n, unit) + \" [\" + team(id) + \"]\";\n  if (!stats[key + \"min\"]) return \"[2] \" + key + \": indisponible\";\n  return \"[2] \" + key + \"min:\" + show(stats[key + \"min\"]) +\n    \", \" + key + \"max:\" + show(stats[key + \"max\"]) + \", \" + key + \"moy:\" + fixed(stats[key + \"moy\"], unit);\n};\nconst screens = [\n  indoor ? pair(indoor, \"[1]\") : \"[1] Indisponible\",\n  group(\"T\", \"C\"),\n  group(\"H\", \"%\"),\n  outdoor ? pair(outdoor, \"[3]\") + \", \" + fixed(outdoor.V, \" km/h\") : \"[3] Indisponible\"\n];\n// La chaîne ne contient que du texte fixe et des nombres. Les guillemets la passent en un argument.\nmsg.payload = \"'\" + screens[mode] + \"'\";\nreturn msg;",
+    "name": "Construire les quatre modes",
+    "x": 420,
+    "y": 448,
+    "wires": [
+      [
+        "ac2b300000000016"
+      ]
+    ],
+    "g": "ac2b300000000018"
+  },
+  {
+    "id": "ac2b300000000016",
+    "type": "exec",
+    "z": "ac2b3e0000000002",
+    "command": "exec python3 \"${GTI700_SCRIPT_DIR:-$HOME/gti700-lab3/python_examples}/LCD.py\"",
+    "addpay": "payload",
+    "append": "",
+    "useSpawn": "false",
+    "timer": "4",
+    "winHide": false,
+    "oldrc": false,
+    "name": "Écrire sur le LCD",
+    "x": 700,
+    "y": 448,
+    "wires": [
+      [],
+      [
+        "ac2b300000000017"
+      ],
+      []
+    ],
+    "g": "ac2b300000000018"
+  },
+  {
+    "id": "ac2b300000000017",
+    "type": "debug",
+    "z": "ac2b3e0000000002",
+    "active": true,
+    "tosidebar": true,
+    "console": false,
+    "tostatus": false,
+    "complete": "payload",
+    "targetType": "msg",
+    "statusVal": "",
+    "statusType": "auto",
+    "name": "Erreur du LCD",
+    "x": 1045,
+    "y": 448,
+    "wires": [],
+    "g": "ac2b300000000018"
+  },
+  {
+    "id": "ac2b300000000018",
+    "type": "group",
+    "z": "ac2b3e0000000002",
+    "name": "1.4  ·  Affichage rotatif du LCD",
+    "x": 24,
+    "y": 398,
+    "w": 1312,
+    "h": 84,
+    "nodes": [
+      "ac2b300000000014",
+      "ac2b300000000015",
+      "ac2b300000000016",
+      "ac2b300000000017"
+    ],
+    "style": {
+      "label": true,
+      "stroke": "#c7b69a",
+      "fill": "#f9fbfc",
+      "color": "#2b3942"
+    }
+  },
+  {
+    "id": "ac2b300000000019",
+    "type": "http in",
+    "z": "ac2b3e0000000002",
+    "url": "/self",
+    "method": "get",
+    "upload": false,
+    "swaggerDoc": "",
+    "name": "GET /self",
+    "x": 170,
+    "y": 535,
+    "wires": [
+      [
+        "ac2b30000000001e"
+      ]
+    ],
+    "g": "ac2b300000000021"
+  },
+  {
+    "id": "ac2b30000000001a",
+    "type": "http in",
+    "z": "ac2b3e0000000002",
+    "url": "/group",
+    "method": "get",
+    "upload": false,
+    "swaggerDoc": "",
+    "name": "GET /group",
+    "x": 170,
+    "y": 577,
+    "wires": [
+      [
+        "ac2b30000000001e"
+      ]
+    ],
+    "g": "ac2b300000000021"
+  },
+  {
+    "id": "ac2b30000000001b",
+    "type": "http in",
+    "z": "ac2b3e0000000002",
+    "url": "/group/:team",
+    "method": "get",
+    "upload": false,
+    "swaggerDoc": "",
+    "name": "GET /group/:team",
+    "x": 170,
+    "y": 619,
+    "wires": [
+      [
+        "ac2b30000000001e"
+      ]
+    ],
+    "g": "ac2b300000000021"
+  },
+  {
+    "id": "ac2b30000000001c",
+    "type": "http in",
+    "z": "ac2b3e0000000002",
+    "url": "/outside",
+    "method": "get",
+    "upload": false,
+    "swaggerDoc": "",
+    "name": "GET /outside",
+    "x": 170,
+    "y": 661,
+    "wires": [
+      [
+        "ac2b30000000001e"
+      ]
+    ],
+    "g": "ac2b300000000021"
+  },
+  {
+    "id": "ac2b30000000001d",
+    "type": "http in",
+    "z": "ac2b3e0000000002",
+    "url": "/",
+    "method": "get",
+    "upload": false,
+    "swaggerDoc": "",
+    "name": "GET /",
+    "x": 170,
+    "y": 703,
+    "wires": [
+      [
+        "ac2b30000000001e"
+      ]
+    ],
+    "g": "ac2b300000000021"
+  },
+  {
+    "id": "ac2b30000000001e",
+    "type": "function",
+    "z": "ac2b3e0000000002",
+    "outputs": 2,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "func": "const indoor = flow.get(\"self\");\nconst outdoor = flow.get(\"outside\");\nconst { teams = {}, summary = {} } = flow.get(\"group\") || {};\nconst path = msg.req.route.path;\nconst team = msg.req.params?.team;\nconst fixed = number => number.toFixed(1);\nconst complete = pair => pair?.T !== undefined && pair?.H !== undefined;\n\nif (path !== \"/\") {\n  const data = { \"/self\": indoor, \"/outside\": outdoor, \"/group\": summary }[path] ??\n    (complete(teams[team]) ? teams[team] : {});\n  msg.headers = { \"content-type\": \"application/json; charset=utf-8\" };\n  const keys = path === \"/group\" ? [\"Tmin\", \"Tmax\", \"Tmoy\", \"Hmin\", \"Hmax\", \"Hmoy\"] : [\"T\", \"H\", \"V\"];\n  const fields = keys.filter(key => data[key] !== undefined).map(key => {\n    const value = data[key];\n    const literal = Array.isArray(value) ? \"[\" + fixed(value[0]) + \",\" + value[1] + \"]\" : fixed(value);\n    return JSON.stringify(key) + \": \" + literal;\n  });\n  msg.payload = \"{\" + fields.join(\", \") + \"}\";\n  return [msg, null];\n}\n\nconst missing = \"aucune information disponible\";\nconst reading = (value, unit) => value === undefined ? missing : fixed(value) + unit;\nconst extreme = (pair, unit) => pair ? reading(pair[0], unit) + \" [équipe \" +\n  String(pair[1]).padStart(2, \"0\") + \"]\" : missing;\nmsg.headers = { \"content-type\": \"text/html; charset=utf-8\" };\nmsg.payload = {\n  indoorT: reading(indoor?.T, \"C\"), indoorH: reading(indoor?.H, \"%\"),\n  outdoorT: reading(outdoor?.T, \"C\"), outdoorH: reading(outdoor?.H, \"%\"),\n  teams: Array.from({ length: 12 }, (_, i) => {\n    const id = String(i + 1).padStart(2, \"0\");\n    const pair = teams[id];\n    return { id, value: complete(pair) ? reading(pair.T, \"C\") + \", \" + reading(pair.H, \"%\") : missing };\n  }),\n  Tmin: extreme(summary.Tmin, \"C\"), Tmax: extreme(summary.Tmax, \"C\"), Tmoy: reading(summary.Tmoy, \"C\"),\n  Hmin: extreme(summary.Hmin, \"%\"), Hmax: extreme(summary.Hmax, \"%\"), Hmoy: reading(summary.Hmoy, \"%\")\n};\nreturn [null, msg];",
+    "name": "Préparer la réponse",
+    "x": 465,
+    "y": 619,
+    "wires": [
+      [
+        "ac2b300000000020"
+      ],
+      [
+        "ac2b30000000001f"
+      ]
+    ],
+    "g": "ac2b300000000021"
+  },
+  {
+    "id": "ac2b30000000001f",
+    "type": "template",
+    "z": "ac2b3e0000000002",
+    "field": "payload",
+    "fieldType": "msg",
+    "format": "html",
+    "syntax": "mustache",
+    "template": "<!doctype html>\n<html lang=\"fr\">\n<head>\n  <meta charset=\"utf-8\">\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n  <title>Informations météorologiques</title>\n</head>\n<body>\n  <h1>Informations météorologiques:</h1>\n  <h2>(1) Valeurs de température et d’humidité personnelles:</h2>\n  <ul>\n    <li>Température: {{payload.indoorT}}</li>\n    <li>Humidité: {{payload.indoorH}}</li>\n  </ul>\n  <h2>(2) Valeurs de températures et humidité pour le groupe:</h2>\n  <h3>Pour chaque équipe:</h3>\n  <ul>\n    {{#payload.teams}}<li>Équipe {{id}}: {{value}}</li>{{/payload.teams}}\n  </ul>\n  <h3>Valeurs maximales, minimales et moyennes du groupe:</h3>\n  <ul>\n    <li>Température -- maximum: {{payload.Tmax}}</li>\n    <li>Température -- minimum: {{payload.Tmin}}</li>\n    <li>Température -- moyenne: {{payload.Tmoy}}</li>\n    <li>Humidité -- maximum: {{payload.Hmax}}</li>\n    <li>Humidité -- minimum: {{payload.Hmin}}</li>\n    <li>Humidité -- moyenne: {{payload.Hmoy}}</li>\n  </ul>\n  <h2>(3) Valeurs de température et humidité extérieures: {{payload.outdoorT}}</h2>\n  <ul>\n    <li>Température: {{payload.outdoorT}}</li>\n    <li>Humidité: {{payload.outdoorH}}</li>\n  </ul>\n</body>\n</html>",
+    "output": "str",
+    "name": "Page météo",
+    "x": 735,
+    "y": 680,
+    "wires": [
+      [
+        "ac2b300000000020"
+      ]
+    ],
+    "g": "ac2b300000000021"
+  },
+  {
+    "id": "ac2b300000000020",
+    "type": "http response",
+    "z": "ac2b3e0000000002",
+    "statusCode": "",
+    "headers": {},
+    "name": "Réponse HTTP",
+    "x": 1020,
+    "y": 619,
+    "wires": [],
+    "g": "ac2b300000000021"
+  },
+  {
+    "id": "ac2b300000000021",
+    "type": "group",
+    "z": "ac2b3e0000000002",
+    "name": "1.5  ·  Mini-service web",
+    "x": 24,
+    "y": 488,
+    "w": 1312,
+    "h": 250,
+    "nodes": [
+      "ac2b300000000019",
+      "ac2b30000000001a",
+      "ac2b30000000001b",
+      "ac2b30000000001c",
+      "ac2b30000000001d",
+      "ac2b30000000001e",
+      "ac2b30000000001f",
+      "ac2b300000000020"
+    ],
+    "style": {
+      "label": true,
+      "stroke": "#aaacc7",
+      "fill": "#f9fbfc",
+      "color": "#2b3942"
+    }
+  },
+  {
+    "id": "ac2b3f0000000002",
+    "type": "mqtt-broker",
+    "name": "HiveMQ public",
+    "broker": "broker.hivemq.com",
+    "port": "1883",
+    "clientid": "",
+    "autoConnect": true,
+    "usetls": false,
+    "protocolVersion": "4",
+    "keepalive": "60",
+    "cleansession": true,
+    "autoUnsubscribe": true,
+    "birthTopic": "",
+    "birthQos": "0",
+    "birthPayload": "",
+    "closeTopic": "",
+    "closeQos": "0",
+    "closePayload": "",
+    "willTopic": "",
+    "willQos": "0",
+    "willPayload": ""
+  }
+]
