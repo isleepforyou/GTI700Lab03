@@ -5,29 +5,57 @@ les nœuds Function. Les deux scripts Python communiquent avec le matériel.
 
 ## 1. Préparer le Raspberry Pi
 
-Installer Node-RED et rendre les modules Python `RPi.GPIO` et `smbus2`
+Installer Node-RED et rendre les modules Python `RPi.GPIO` et `smbus`
+(ou `smbus2`)
 accessibles au compte qui lance Node-RED. Pour le DHT11, relier VCC au 3,3 V
 (broche physique 1), DATA à **BCM 17** (broche 11) et GND à la broche 6.
 Un capteur nu peut nécessiter une résistance de tirage de 4,7 à 10 kΩ entre
 DATA et 3,3 V; les modules DHT11 l'intègrent souvent déjà.
 
-Pour le LCD I²C avec adaptateur PCF8574T, relier SDA à GPIO2 (broche 3), SCL à
-GPIO3 (broche 5), et partager la masse. Alimenter le module selon ses
-spécifications. Si son bus I²C est tiré au 5 V, intercaler un convertisseur de
-niveau compatible I²C: les broches du Raspberry Pi ne tolèrent pas le 5 V.
-Le flot utilise le DHT11 et le LCD; `thermistor.py` est un exemple séparé.
-Activer le bus **I²C 1** pour le LCD.
+Pour le LCD1602 I²C avec adaptateur PCF8574T, le schéma du laboratoire utilise
+les connexions suivantes :
+
+| LCD | Carte d'extension GPIO | Broche physique du Pi |
+| --- | --- | --- |
+| VCC | 5V0 | 2 |
+| GND | GND | 6 |
+| SDA | SDA1 (GPIO2) | 3 |
+| SCL | SCL1 (GPIO3) | 5 |
+
+Vérifier que les signaux SDA/SCL côté Raspberry Pi restent à 3,3 V. Si le
+module utilise des tirages à 5 V, intercaler un convertisseur de niveau I²C.
+Activer le bus **I²C 1** pour le LCD avec `sudo raspi-config` (Interface
+Options > I2C), puis redémarrer.
 
 Extraire l’archive dans le dossier personnel de ce compte. Le chemin attendu
-pour les scripts est `~/gti700-lab3/python_examples`. Si le dossier est ailleurs,
+pour les scripts est `~/GTI700Lab03/python_examples`. Si le dossier est ailleurs,
 définir `GTI700_SCRIPT_DIR` dans l’environnement du processus Node-RED.
 
-Le script LCD utilise par défaut l’adresse I²C **0x27** et un écran **16 × 2**.
-Vérifier l’adresse détectée sur le Pi, par exemple avec `i2cdetect -y 1`. Selon le
-montage, définir `GTI700_LCD_ADDRESS`, ou définir ensemble
+Le script LCD utilise un écran **16 × 2** et détecte automatiquement une
+adresse répondant dans les plages des PCF8574/PCF8574A (souvent **0x27** ou
+**0x3f**). Le code fourni du LCD1602 utilise **0x27**. Vérifier l’adresse
+détectée sur le Pi avec `i2cdetect -y 1`. Si
+plusieurs périphériques répondent, définir explicitement `GTI700_LCD_ADDRESS`
+avec l’adresse du LCD. Selon le montage, définir ensemble
 `GTI700_LCD_COLUMNS=20` et `GTI700_LCD_ROWS=4`. Le script suppose que le module
 PCF8574T relie P0 à RS, P1 à RW, P2 à E, P3 au rétroéclairage et P4 à P7 aux
 quatre bits de données du contrôleur.
+
+Tester l'écran seul, avant de démarrer le flot Node-RED :
+
+```bash
+sudo i2cdetect -y 1
+python3 ~/GTI700Lab03/python_examples/LCD.py 'GTI700 OK'
+```
+
+Pour utiliser exactement l'adresse du code fourni :
+
+```bash
+GTI700_LCD_ADDRESS=0x27 python3 ~/GTI700Lab03/python_examples/LCD.py 'GTI700 OK'
+```
+
+Si le LCD est détecté mais reste illisible, régler le potentiomètre de contraste
+du module. Les erreurs I²C du script sont visibles dans le Debug de Node-RED.
 
 ## 2. Importer et déployer
 
