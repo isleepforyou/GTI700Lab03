@@ -89,7 +89,7 @@ def main():
 		return 2
 
 	try:
-		address_setting = os.environ.get("GTI700_LCD_ADDRESS", "auto").strip().lower()
+		address_setting = os.environ.get("GTI700_LCD_ADDRESS", "0x27").strip().lower()
 		address = None if address_setting == "auto" else int(address_setting, 0)
 		columns = int(os.environ.get("GTI700_LCD_COLUMNS", "16"))
 		rows = int(os.environ.get("GTI700_LCD_ROWS", "2"))

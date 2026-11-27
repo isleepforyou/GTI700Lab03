@@ -31,12 +31,11 @@ Extraire l’archive dans le dossier personnel de ce compte. Le chemin attendu
 pour les scripts est `~/GTI700Lab03/python_examples`. Si le dossier est ailleurs,
 définir `GTI700_SCRIPT_DIR` dans l’environnement du processus Node-RED.
 
-Le script LCD utilise un écran **16 × 2** et détecte automatiquement une
-adresse répondant dans les plages des PCF8574/PCF8574A (souvent **0x27** ou
-**0x3f**). Le code fourni du LCD1602 utilise **0x27**. Vérifier l’adresse
-détectée sur le Pi avec `i2cdetect -y 1`. Si
-plusieurs périphériques répondent, définir explicitement `GTI700_LCD_ADDRESS`
-avec l’adresse du LCD. Selon le montage, définir ensemble
+Le script LCD utilise un écran **16 × 2** à l'adresse **0x27**, conformément
+au code fourni et à l'adresse détectée sur le Pi. Si un autre module utilise
+une adresse différente, définir `GTI700_LCD_ADDRESS` (par exemple `0x3f`)
+ou `auto` pour activer la détection des PCF8574/PCF8574A. Vérifier l'adresse
+avec `i2cdetect -y 1`. Selon le montage, définir ensemble
 `GTI700_LCD_COLUMNS=20` et `GTI700_LCD_ROWS=4`. Le script suppose que le module
 PCF8574T relie P0 à RS, P1 à RW, P2 à E, P3 au rétroéclairage et P4 à P7 aux
 quatre bits de données du contrôleur.
